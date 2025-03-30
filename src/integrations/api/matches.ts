@@ -92,7 +92,7 @@ export const fetchMatches = async (
 ): Promise<Match[]> => {
   try {
     const { data, error } = await supabase.functions.invoke('get-matches', {
-      body: { type, limit, competition_id, status }
+      body: { type, limit, competition_id, status, useApi: true }
     });
 
     if (error) {
@@ -107,8 +107,8 @@ export const fetchMatches = async (
   } catch (error: any) {
     console.error('Error fetching matches:', error);
     toast({
-      title: 'Error',
-      description: 'Failed to fetch matches. Please try again later.',
+      title: 'Erro',
+      description: 'Falha ao buscar partidas. Por favor, tente novamente mais tarde.',
       variant: 'destructive'
     });
     return [];
@@ -134,8 +134,8 @@ export const fetchMatchById = async (id: string): Promise<MatchDetails | null> =
   } catch (error: any) {
     console.error(`Error fetching match ${id}:`, error);
     toast({
-      title: 'Error',
-      description: 'Failed to fetch match details. Please try again later.',
+      title: 'Erro',
+      description: 'Falha ao buscar detalhes da partida. Por favor, tente novamente mais tarde.',
       variant: 'destructive'
     });
     return null;
@@ -155,8 +155,8 @@ export const initializeDatabase = async (): Promise<boolean> => {
 
     if (data?.success) {
       toast({
-        title: 'Success',
-        description: 'Database initialized with soccer match data!'
+        title: 'Sucesso',
+        description: 'Banco de dados inicializado com dados de partidas de futebol!'
       });
       return true;
     }
@@ -165,8 +165,8 @@ export const initializeDatabase = async (): Promise<boolean> => {
   } catch (error: any) {
     console.error('Error initializing database:', error);
     toast({
-      title: 'Error',
-      description: 'Failed to initialize database. Please try again later.',
+      title: 'Erro',
+      description: 'Falha ao inicializar o banco de dados. Por favor, tente novamente mais tarde.',
       variant: 'destructive'
     });
     return false;

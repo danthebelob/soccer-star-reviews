@@ -20,9 +20,106 @@ Deno.serve(async (req) => {
   }
   
   try {
-    const { type = 'all', limit = 10, competition_id, status } = await req.json()
-    console.log(`Fetching matches: type=${type}, limit=${limit}, competition=${competition_id}, status=${status}`)
+    const { type = 'all', limit = 10, competition_id, status, useApi = false } = await req.json()
+    console.log(`Fetching matches: type=${type}, limit=${limit}, competition=${competition_id}, status=${status}, useApi=${useApi}`)
     
+    // If useApi is true, call the football-api function
+    if (useApi) {
+      // Get current date
+      const today = new Date();
+      
+      // Calculate dates for past and future matches
+      const pastDate = new Date(today);
+      pastDate.setDate(pastDate.getDate() - 7); // 7 days ago
+      
+      const futureDate = new Date(today);
+      futureDate.setDate(futureDate.getDate() + 7); // 7 days in the future
+      
+      // Format dates as YYYY-MM-DD
+      const fromDate = pastDate.toISOString().split('T')[0];
+      const toDate = futureDate.toISOString().split('T')[0];
+      
+      // Call football-api function
+      const footballApiResponse = await supabaseClient.functions.invoke('football-api', {
+        body: { 
+          action: 'fixtures', 
+          from: fromDate, 
+          to: toDate,
+          league: 39 // Premier League by default
+        }
+      });
+      
+      if (footballApiResponse.error) {
+        throw new Error(footballApiResponse.error.message);
+      }
+      
+      // Transform the data to match frontend expectations
+      if (footballApiResponse.data && footballApiResponse.data.data) {
+        const matches = footballApiResponse.data.data;
+        
+        // Filter based on type
+        let filteredMatches = matches;
+        if (type === 'live') {
+          filteredMatches = matches.filter(match => match.is_live);
+        } else if (type === 'upcoming') {
+          filteredMatches = matches.filter(match => match.status === 'scheduled');
+        } else if (type === 'trending') {
+          // For trending, we'll sort by the most recent/upcoming matches
+          filteredMatches = matches.sort((a, b) => {
+            return Math.abs(a.fixture_timestamp - Math.floor(Date.now() / 1000)) - 
+                   Math.abs(b.fixture_timestamp - Math.floor(Date.now() / 1000));
+          });
+        }
+        
+        // Apply limit
+        filteredMatches = filteredMatches.slice(0, limit);
+        
+        // Transform to expected format
+        const transformedMatches = filteredMatches.map(match => {
+          return {
+            id: match.id,
+            homeTeam: {
+              id: match.home_team_id,
+              name: match.home_team_name,
+              logo: match.home_team_logo,
+              score: match.home_score || 0
+            },
+            awayTeam: {
+              id: match.away_team_id,
+              name: match.away_team_name,
+              logo: match.away_team_logo,
+              score: match.away_score || 0
+            },
+            date: match.date,
+            time: match.time,
+            competition: match.league_name,
+            competitionLogo: match.league_logo,
+            isLive: match.is_live,
+            rating: 4.5, // Default rating
+            reviewCount: 10, // Default review count
+            tags: ['futebol', 'premier-league'],
+            highlightsUrl: null,
+            isFeatured: false
+          };
+        });
+        
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            data: transformedMatches
+          }),
+          { 
+            headers: { 
+              ...corsHeaders,
+              'Content-Type': 'application/json' 
+            } 
+          }
+        );
+      }
+    }
+    
+    // If we reach here, either useApi is false or the API call failed
+    // Fall back to database query (original code)
     let query = supabaseClient
       .from('matches')
       .select(`
@@ -37,8 +134,8 @@ Deno.serve(async (req) => {
         is_featured,
         highlights_url,
         competitions(id, name, short_name, logo_url),
-        teams!matches_home_team_id_fkey(id, name, short_name, logo_url),
-        teams!matches_away_team_id_fkey(id, name, short_name, logo_url),
+        home_team:teams!matches_home_team_id_fkey(id, name, short_name, logo_url),
+        away_team:teams!matches_away_team_id_fkey(id, name, short_name, logo_url),
         match_tags(tag)
       `)
       .order('date', { ascending: false })
@@ -72,21 +169,18 @@ Deno.serve(async (req) => {
     
     // Transform the data to match the frontend expectations
     const transformedMatches = data.map(match => {
-      const homeTeam = match.teams;
-      const awayTeam = match['teams!matches_away_team_id_fkey'];
-      
       return {
         id: match.id,
         homeTeam: {
-          id: homeTeam.id,
-          name: homeTeam.name,
-          logo: homeTeam.logo_url,
+          id: match.home_team.id,
+          name: match.home_team.name,
+          logo: match.home_team.logo_url,
           score: match.home_score || 0
         },
         awayTeam: {
-          id: awayTeam.id,
-          name: awayTeam.name,
-          logo: awayTeam.logo_url,
+          id: match.away_team.id,
+          name: match.away_team.name,
+          logo: match.away_team.logo_url,
           score: match.away_score || 0
         },
         date: match.date,
