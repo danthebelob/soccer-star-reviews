@@ -7,11 +7,13 @@ import { Match } from "@/components/MatchCard";
 export interface ApiMatch {
   id: string;
   homeTeam: {
+    id?: string;
     name: string;
     logo: string;
     score: number;
   };
   awayTeam: {
+    id?: string;
     name: string;
     logo: string;
     score: number;
@@ -28,7 +30,7 @@ export interface ApiMatch {
   highlightsUrl?: string;
 }
 
-export interface MatchDetails extends ApiMatch {
+export interface MatchDetails extends Omit<ApiMatch, 'competition'> {
   competition: {
     id: string;
     name: string;
@@ -97,12 +99,12 @@ export const fetchMatches = async (
       throw new Error(error.message);
     }
 
-    if (data.success && data.data) {
+    if (data?.success && data?.data) {
       return data.data.map((match: ApiMatch) => apiMatchToComponentMatch(match));
     }
 
     return [];
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching matches:', error);
     toast({
       title: 'Error',
@@ -116,20 +118,20 @@ export const fetchMatches = async (
 // Fetch a single match by ID
 export const fetchMatchById = async (id: string): Promise<MatchDetails | null> => {
   try {
-    const { data, error } = await supabase.functions.invoke(`get-match-details/${id}`, {
-      method: 'GET'
+    const { data, error } = await supabase.functions.invoke('get-match-details', {
+      body: { id }
     });
 
     if (error) {
       throw new Error(error.message);
     }
 
-    if (data.success && data.data) {
+    if (data?.success && data?.data) {
       return data.data as MatchDetails;
     }
 
     return null;
-  } catch (error) {
+  } catch (error: any) {
     console.error(`Error fetching match ${id}:`, error);
     toast({
       title: 'Error',
@@ -144,14 +146,14 @@ export const fetchMatchById = async (id: string): Promise<MatchDetails | null> =
 export const initializeDatabase = async (): Promise<boolean> => {
   try {
     const { data, error } = await supabase.functions.invoke('fetch-football-data', {
-      body: { league: 'all' }
+      body: { action: 'initialize' }
     });
 
     if (error) {
       throw new Error(error.message);
     }
 
-    if (data.success) {
+    if (data?.success) {
       toast({
         title: 'Success',
         description: 'Database initialized with soccer match data!'
@@ -160,7 +162,7 @@ export const initializeDatabase = async (): Promise<boolean> => {
     }
 
     return false;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error initializing database:', error);
     toast({
       title: 'Error',

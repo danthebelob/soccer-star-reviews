@@ -20,14 +20,13 @@ Deno.serve(async (req) => {
   }
   
   try {
-    const url = new URL(req.url)
-    const matchId = url.pathname.split('/').pop()
+    const { id } = await req.json();
     
-    if (!matchId) {
+    if (!id) {
       throw new Error('Match ID is required')
     }
     
-    console.log(`Fetching match details for: ${matchId}`)
+    console.log(`Fetching match details for ID: ${id}`)
     
     // Query match details
     const { data: match, error: matchError } = await supabaseClient
@@ -53,7 +52,7 @@ Deno.serve(async (req) => {
         teams!matches_home_team_id_fkey(id, name, short_name, logo_url),
         teams!matches_away_team_id_fkey(id, name, short_name, logo_url)
       `)
-      .eq('id', matchId)
+      .eq('id', id)
       .single()
     
     if (matchError) {
@@ -64,7 +63,7 @@ Deno.serve(async (req) => {
     const { data: tags, error: tagsError } = await supabaseClient
       .from('match_tags')
       .select('tag')
-      .eq('match_id', matchId)
+      .eq('match_id', id)
     
     if (tagsError) {
       throw tagsError
@@ -80,7 +79,7 @@ Deno.serve(async (req) => {
         created_at,
         profiles(id, username, avatar_url)
       `)
-      .eq('match_id', matchId)
+      .eq('match_id', id)
       .order('created_at', { ascending: false })
       .limit(10)
     
@@ -89,18 +88,21 @@ Deno.serve(async (req) => {
     }
     
     // Format match data
+    const homeTeam = match.teams;
+    const awayTeam = match['teams!matches_away_team_id_fkey'];
+    
     const matchDetails = {
       id: match.id,
       homeTeam: {
-        id: match.teams.id,
-        name: match.teams.name,
-        logo: match.teams.logo_url,
+        id: homeTeam.id,
+        name: homeTeam.name,
+        logo: homeTeam.logo_url,
         score: match.home_score || 0
       },
       awayTeam: {
-        id: match.teams.id,
-        name: match.teams.name,
-        logo: match.teams.logo_url,
+        id: awayTeam.id,
+        name: awayTeam.name,
+        logo: awayTeam.logo_url,
         score: match.away_score || 0
       },
       date: match.date,
@@ -131,11 +133,11 @@ Deno.serve(async (req) => {
         rating: review.rating,
         comment: review.comment,
         createdAt: review.created_at,
-        user: {
-          id: review.profiles?.id,
-          username: review.profiles?.username,
-          avatar: review.profiles?.avatar_url
-        }
+        user: review.profiles ? {
+          id: review.profiles.id,
+          username: review.profiles.username,
+          avatar: review.profiles.avatar_url
+        } : undefined
       }))
     }
     

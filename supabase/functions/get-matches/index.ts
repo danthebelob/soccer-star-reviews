@@ -72,16 +72,21 @@ Deno.serve(async (req) => {
     
     // Transform the data to match the frontend expectations
     const transformedMatches = data.map(match => {
+      const homeTeam = match.teams;
+      const awayTeam = match['teams!matches_away_team_id_fkey'];
+      
       return {
         id: match.id,
         homeTeam: {
-          name: match.teams.name,
-          logo: match.teams.logo_url,
+          id: homeTeam.id,
+          name: homeTeam.name,
+          logo: homeTeam.logo_url,
           score: match.home_score || 0
         },
         awayTeam: {
-          name: match.teams.name,
-          logo: match.teams.logo_url,
+          id: awayTeam.id,
+          name: awayTeam.name,
+          logo: awayTeam.logo_url,
           score: match.away_score || 0
         },
         date: match.date,
