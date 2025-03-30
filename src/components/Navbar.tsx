@@ -22,22 +22,22 @@ const Navbar = () => {
           </Button>
           <Link to="/" className="flex items-center gap-2">
             <Trophy className="w-6 h-6 text-soccer-grass" />
-            <span className="text-xl font-bold">Soccer<span className="text-soccer-score">Star</span> Reviews</span>
+            <span className="text-xl font-bold">Futebol<span className="text-soccer-score">Análise</span></span>
           </Link>
         </div>
         
         <div className="hidden md:flex items-center space-x-4">
-          <Link to="/matches" className="px-3 py-2 text-sm font-medium rounded-md hover:bg-gray-100 dark:hover:bg-gray-800">
-            Matches
+          <Link to="/partidas" className="px-3 py-2 text-sm font-medium rounded-md hover:bg-gray-100 dark:hover:bg-gray-800">
+            Partidas
           </Link>
-          <Link to="/top-rated" className="px-3 py-2 text-sm font-medium rounded-md hover:bg-gray-100 dark:hover:bg-gray-800">
-            Top Rated
+          <Link to="/mais-votados" className="px-3 py-2 text-sm font-medium rounded-md hover:bg-gray-100 dark:hover:bg-gray-800">
+            Mais Votados
           </Link>
-          <Link to="/live" className="px-3 py-2 text-sm font-medium rounded-md hover:bg-gray-100 dark:hover:bg-gray-800">
-            Live
+          <Link to="/ao-vivo" className="px-3 py-2 text-sm font-medium rounded-md hover:bg-gray-100 dark:hover:bg-gray-800">
+            Ao Vivo
           </Link>
-          <Link to="/community" className="px-3 py-2 text-sm font-medium rounded-md hover:bg-gray-100 dark:hover:bg-gray-800">
-            Community
+          <Link to="/comunidade" className="px-3 py-2 text-sm font-medium rounded-md hover:bg-gray-100 dark:hover:bg-gray-800">
+            Comunidade
           </Link>
         </div>
         
@@ -46,7 +46,7 @@ const Navbar = () => {
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Search matches..."
+              placeholder="Buscar partidas..."
               className="w-[200px] pl-8 rounded-full"
             />
           </div>
@@ -66,23 +66,23 @@ const Navbar = () => {
       {isMenuOpen && (
         <div className="md:hidden animate-slide-in border-t">
           <div className="px-2 pt-2 pb-3 space-y-1">
-            <Link to="/matches" className="block px-3 py-2 text-base font-medium rounded-md hover:bg-gray-100 dark:hover:bg-gray-800">
-              Matches
+            <Link to="/partidas" className="block px-3 py-2 text-base font-medium rounded-md hover:bg-gray-100 dark:hover:bg-gray-800">
+              Partidas
             </Link>
-            <Link to="/top-rated" className="block px-3 py-2 text-base font-medium rounded-md hover:bg-gray-100 dark:hover:bg-gray-800">
-              Top Rated
+            <Link to="/mais-votados" className="block px-3 py-2 text-base font-medium rounded-md hover:bg-gray-100 dark:hover:bg-gray-800">
+              Mais Votados
             </Link>
-            <Link to="/live" className="block px-3 py-2 text-base font-medium rounded-md hover:bg-gray-100 dark:hover:bg-gray-800">
-              Live
+            <Link to="/ao-vivo" className="block px-3 py-2 text-base font-medium rounded-md hover:bg-gray-100 dark:hover:bg-gray-800">
+              Ao Vivo
             </Link>
-            <Link to="/community" className="block px-3 py-2 text-base font-medium rounded-md hover:bg-gray-100 dark:hover:bg-gray-800">
-              Community
+            <Link to="/comunidade" className="block px-3 py-2 text-base font-medium rounded-md hover:bg-gray-100 dark:hover:bg-gray-800">
+              Comunidade
             </Link>
             <div className="relative mt-3 flex items-center">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 type="search"
-                placeholder="Search matches..."
+                placeholder="Buscar partidas..."
                 className="w-full pl-8 rounded-full"
               />
             </div>
