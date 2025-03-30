@@ -1,8 +1,8 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { fetchMatches } from "@/integrations/api/matches";
-import { Match } from "@/integrations/supabase/types";
-import { MatchCard } from "@/components/MatchCard";
+import { Match } from "@/components/MatchCard";
+import MatchCard from "@/components/MatchCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Radio } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 const AoVivo = () => {
   const { data: matches, isLoading, error } = useQuery({
     queryKey: ["matches", "live"],
-    queryFn: () => fetchMatches({ type: "live", limit: 10 }),
+    queryFn: () => fetchMatches("live", 10),
   });
 
   if (isLoading) {

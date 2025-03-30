@@ -2,8 +2,8 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchMatches } from "@/integrations/api/matches";
-import { Match } from "@/integrations/supabase/types";
-import { MatchCard } from "@/components/MatchCard";
+import { Match } from "@/components/MatchCard";
+import MatchCard from "@/components/MatchCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Calendar, Filter, SortDesc } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 const Partidas = () => {
   const { data: matches, isLoading, error } = useQuery({
     queryKey: ["matches"],
-    queryFn: () => fetchMatches({ type: "all", limit: 20 }),
+    queryFn: () => fetchMatches("all", 20),
   });
 
   if (isLoading) {

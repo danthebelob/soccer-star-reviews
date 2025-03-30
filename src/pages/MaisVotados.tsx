@@ -1,15 +1,15 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { fetchMatches } from "@/integrations/api/matches";
-import { Match } from "@/integrations/supabase/types";
-import { MatchCard } from "@/components/MatchCard";
+import { Match } from "@/components/MatchCard";
+import MatchCard from "@/components/MatchCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Star } from "lucide-react";
 
 const MaisVotados = () => {
   const { data: matches, isLoading, error } = useQuery({
     queryKey: ["matches", "trending"],
-    queryFn: () => fetchMatches({ type: "trending", limit: 9 }),
+    queryFn: () => fetchMatches("trending", 9),
   });
 
   if (isLoading) {
