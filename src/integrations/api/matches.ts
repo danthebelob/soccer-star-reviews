@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 import { Match } from "@/components/MatchCard";
@@ -60,6 +61,15 @@ export interface MatchDetails extends Omit<ApiMatch, 'competition'> {
   }[];
 }
 
+// Define team interface
+export interface Team {
+  id: string;
+  name: string;
+  logo: string;
+  country?: string;
+  sport_type?: string;
+}
+
 // Convert API match data to component Match type
 export const apiMatchToComponentMatch = (apiMatch: ApiMatch): Match => {
   return {
@@ -92,13 +102,25 @@ export const fetchMatches = async (
   competition_id?: string,
   status?: string,
   sport: string = 'basketball',
-  league: number = 12
+  league: number = 12,
+  season: string = '2023',
+  team_id?: string | null
 ): Promise<Match[]> => {
   try {
-    console.log(`Fetching matches: type=${type}, sport=${sport}, league=${league}`);
+    console.log(`Fetching matches: type=${type}, sport=${sport}, league=${league}, season=${season}, team=${team_id}`);
     
     const { data, error } = await supabase.functions.invoke('get-matches', {
-      body: { type, limit, competition_id, status, useApi: true, sport, league }
+      body: { 
+        type, 
+        limit, 
+        competition_id, 
+        status, 
+        useApi: true, 
+        sport, 
+        league, 
+        season, 
+        team_id
+      }
     });
 
     if (error) {
@@ -152,10 +174,13 @@ export const fetchMatchById = async (id: string): Promise<MatchDetails | null> =
 };
 
 // Fetch available leagues
-export const fetchLeagues = async (season: number = 2023): Promise<any[]> => {
+export const fetchLeagues = async (
+  sport: string = 'basketball',
+  season: string = '2023'
+): Promise<any[]> => {
   try {
     const { data, error } = await supabase.functions.invoke('football-api', {
-      body: { action: 'leagues', season }
+      body: { action: 'leagues', season, sport }
     });
 
     if (error) {
@@ -172,6 +197,37 @@ export const fetchLeagues = async (season: number = 2023): Promise<any[]> => {
     toast({
       title: 'Erro',
       description: 'Falha ao buscar ligas disponíveis. Por favor, tente novamente mais tarde.',
+      variant: 'destructive'
+    });
+    return [];
+  }
+};
+
+// Fetch teams for a league
+export const fetchTeams = async (
+  sport: string = 'basketball', 
+  league: number = 12,
+  season: string = '2023'
+): Promise<Team[]> => {
+  try {
+    const { data, error } = await supabase.functions.invoke('football-api', {
+      body: { action: 'teams', league, season, sport }
+    });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    if (data?.success && data?.data) {
+      return data.data;
+    }
+
+    return [];
+  } catch (error: any) {
+    console.error('Error fetching teams:', error);
+    toast({
+      title: 'Erro',
+      description: 'Falha ao buscar times disponíveis. Por favor, tente novamente mais tarde.',
       variant: 'destructive'
     });
     return [];

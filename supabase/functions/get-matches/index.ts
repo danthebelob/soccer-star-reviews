@@ -44,11 +44,13 @@ Deno.serve(async (req) => {
       competition_id, 
       status, 
       useApi = false, 
-      sport = 'basketball', // Alterado para basquete como padrão
-      league = 12 // Alterado para NBA como padrão
+      sport = 'basketball', 
+      league = 12,
+      season = '2023',
+      team_id = null
     } = requestParams;
     
-    console.log(`Fetching matches: type=${type}, limit=${limit}, competition=${competition_id}, status=${status}, useApi=${useApi}, sport=${sport}, league=${league}`);
+    console.log(`Fetching matches: type=${type}, limit=${limit}, competition=${competition_id}, status=${status}, useApi=${useApi}, sport=${sport}, league=${league}, season=${season}, team=${team_id}`);
     
     // If useApi is true, call the football-api function
     if (useApi) {
@@ -60,14 +62,14 @@ Deno.serve(async (req) => {
       pastDate.setDate(pastDate.getDate() - 7); // 7 days ago
       
       const futureDate = new Date(today);
-      futureDate.setDate(futureDate.getDate() + 7); // 7 days in the future
+      futureDate.setDate(futureDate.getDate() + 14); // 14 days in the future
       
       // Format dates as YYYY-MM-DD
       const fromDate = pastDate.toISOString().split('T')[0];
       const toDate = futureDate.toISOString().split('T')[0];
       
       // Call football-api function
-      console.log(`Calling football-api with: action=fixtures, from=${fromDate}, to=${toDate}, league=${league}, sport=${sport}`);
+      console.log(`Calling football-api with: action=fixtures, from=${fromDate}, to=${toDate}, league=${league}, sport=${sport}, season=${season}, team=${team_id}`);
       
       try {
         const footballApiResponse = await supabaseClient.functions.invoke('football-api', {
@@ -76,7 +78,9 @@ Deno.serve(async (req) => {
             from: fromDate, 
             to: toDate,
             league: league,
-            sport: sport
+            sport: sport,
+            season: season,
+            team: team_id
           }
         });
         
@@ -85,21 +89,28 @@ Deno.serve(async (req) => {
           throw new Error(footballApiResponse.error.message);
         }
 
-        console.log('football-api response:', JSON.stringify(footballApiResponse.data).substring(0, 200) + '...');
+        console.log(`football-api response: ${JSON.stringify(footballApiResponse.data).substring(0, 200)}...`);
         
         // Transform the data to match frontend expectations
         if (footballApiResponse.data && footballApiResponse.data.data) {
           const matches = footballApiResponse.data.data;
           
           // Filter based on type
-          let filteredMatches = matches;
+          let filteredMatches = [...matches];
+          
+          if (team_id) {
+            filteredMatches = filteredMatches.filter(match => 
+              match.home_team_id === team_id || match.away_team_id === team_id
+            );
+          }
+          
           if (type === 'live') {
-            filteredMatches = matches.filter(match => match.is_live);
+            filteredMatches = filteredMatches.filter(match => match.is_live);
           } else if (type === 'upcoming') {
-            filteredMatches = matches.filter(match => match.status === 'scheduled');
+            filteredMatches = filteredMatches.filter(match => match.status === 'Not Started' || match.status === 'scheduled');
           } else if (type === 'trending') {
             // For trending, we'll sort by the most recent/upcoming matches
-            filteredMatches = matches.sort((a, b) => {
+            filteredMatches = filteredMatches.sort((a, b) => {
               return Math.abs(a.fixture_timestamp - Math.floor(Date.now() / 1000)) - 
                     Math.abs(b.fixture_timestamp - Math.floor(Date.now() / 1000));
             });
@@ -111,7 +122,7 @@ Deno.serve(async (req) => {
           // Transform to expected format
           const transformedMatches = filteredMatches.map(match => {
             return {
-              id: match.id,
+              id: match.id || `${match.sport_type}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
               homeTeam: {
                 id: match.home_team_id,
                 name: match.home_team_name,
