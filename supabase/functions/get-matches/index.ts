@@ -20,7 +20,7 @@ Deno.serve(async (req) => {
   }
   
   try {
-    // Extrair body da requisição
+    // Extract request body
     let bodyText;
     try {
       bodyText = await req.text();
@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
       throw new Error('Could not read request body');
     }
 
-    // Tentar parse do JSON
+    // Parse JSON
     let requestParams;
     try {
       requestParams = bodyText ? JSON.parse(bodyText) : {};
@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
       limit = 10, 
       competition_id, 
       status, 
-      useApi = false, 
+      useApi = true, 
       sport = 'basketball', 
       league = 12,
       season = '2023',
@@ -62,13 +62,13 @@ Deno.serve(async (req) => {
       pastDate.setDate(pastDate.getDate() - 7); // 7 days ago
       
       const futureDate = new Date(today);
-      futureDate.setDate(futureDate.getDate() + 14); // 14 days in the future
+      futureDate.setDate(futureDate.getDate() + 30); // 30 days in the future (increased from 14)
       
       // Format dates as YYYY-MM-DD
       const fromDate = pastDate.toISOString().split('T')[0];
       const toDate = futureDate.toISOString().split('T')[0];
       
-      // Call football-api function
+      // Call football-api function for fixtures
       console.log(`Calling football-api with: action=fixtures, from=${fromDate}, to=${toDate}, league=${league}, sport=${sport}, season=${season}, team=${team_id}`);
       
       try {
@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
             league: league,
             sport: sport,
             season: season,
-            team: team_id
+            team_id: team_id
           }
         });
         
@@ -89,11 +89,12 @@ Deno.serve(async (req) => {
           throw new Error(footballApiResponse.error.message);
         }
 
-        console.log(`football-api response: ${JSON.stringify(footballApiResponse.data).substring(0, 200)}...`);
+        console.log(`football-api response for fixtures: ${JSON.stringify(footballApiResponse.data).substring(0, 200)}...`);
         
-        // Transform the data to match frontend expectations
+        // Get matches data
         if (footballApiResponse.data && footballApiResponse.data.data) {
           const matches = footballApiResponse.data.data;
+          console.log(`Received ${matches.length} fixtures from API Sports`);
           
           // Filter based on type
           let filteredMatches = [...matches];
@@ -149,6 +150,8 @@ Deno.serve(async (req) => {
             };
           });
           
+          console.log(`Transformed ${transformedMatches.length} matches`);
+          
           return new Response(
             JSON.stringify({ 
               success: true, 
@@ -161,6 +164,8 @@ Deno.serve(async (req) => {
               } 
             }
           );
+        } else {
+          console.log('No data or unexpected format from football-api, falling back to empty array');
         }
       } catch (error) {
         console.error('Error calling football-api function:', error);
@@ -222,6 +227,24 @@ Deno.serve(async (req) => {
       throw error
     }
     
+    // If no data from database, return empty array with proper message
+    if (!data || data.length === 0) {
+      console.log('No data from database, returning empty array');
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          data: [],
+          message: 'No matches found in database'
+        }),
+        { 
+          headers: { 
+            ...corsHeaders,
+            'Content-Type': 'application/json' 
+          } 
+        }
+      );
+    }
+    
     // Transform the data to match the frontend expectations
     const transformedMatches = data.map(match => {
       return {
@@ -255,7 +278,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: true, 
-        data: [] // Retornando array vazio como fallback
+        data: transformedMatches
       }),
       { 
         headers: { 

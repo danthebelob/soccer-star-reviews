@@ -38,9 +38,9 @@ Deno.serve(async (req) => {
   try {
     // Parse request body
     const requestData = await req.json();
-    const { action, season = 2023, league = 39, from, to, sport = 'basketball' } = requestData;
+    const { action, season = 2023, league = 39, from, to, sport = 'basketball', team_id = null } = requestData;
     
-    console.log(`[Football API] Action: ${action}, Sport: ${sport}, League: ${league}, Season: ${season}`);
+    console.log(`[Football API] Action: ${action}, Sport: ${sport}, League: ${league}, Season: ${season}, Team: ${team_id}`);
 
     // Set API endpoint based on sport
     const apiEndpoint = getSportEndpoint(sport);
@@ -59,8 +59,9 @@ Deno.serve(async (req) => {
     // Handle different API actions
     let endpoint = '';
     let params = '';
+    let responseData;
 
-    if (action === 'fixtures') {
+    if (action === 'fixtures' || action === 'games') {
       if (sport === 'basketball') {
         // Basketball-specific endpoint and params
         endpoint = `/games`;
@@ -70,61 +71,104 @@ Deno.serve(async (req) => {
         if (from && to) {
           params += `&date=${from}`;
         }
-      } else if (sport === 'soccer' || sport === 'football') {
+        
+        // Add team filter if specified
+        if (team_id) {
+          params += `&team=${team_id}`;
+        }
+      } else {
         // Soccer endpoints
         endpoint = `/fixtures`;
         params = `?league=${league}&season=${season}&from=${defaultFrom}&to=${defaultTo}`;
-      } else {
-        // Generic endpoints for other sports
-        endpoint = `/games`;
-        params = `?league=${league}&season=${season}`;
         
-        // Add date range if specified
-        if (from && to) {
-          params += `&date=${from}`;
+        // Add team filter if specified
+        if (team_id) {
+          params += `&team=${team_id}`;
         }
       }
-    } else if (action === 'leagues') {
-      if (sport === 'basketball') {
-        endpoint = `/leagues`;
-        params = season ? `?season=${season}` : '';
-      } else {
-        endpoint = `/leagues`;
-        params = season ? `?season=${season}` : '';
+      
+      console.log(`[Football API] Full API URL: ${apiEndpoint}${endpoint}${params}`);
+      
+      // Make API request for fixtures/games
+      const response = await fetch(`${apiEndpoint}${endpoint}${params}`, {
+        method: 'GET',
+        headers: requestHeaders,
+      });
+      
+      responseData = await response.json();
+      console.log(`[Football API] Response status: ${response.status}`);
+      console.log(`[Football API] Response preview: ${JSON.stringify(responseData).substring(0, 100)}...`);
+      
+      // Log the number of fixtures/games found
+      if (responseData.response) {
+        console.log(`[Football API] Found ${responseData.response.length} ${sport} games`);
       }
-    } else if (action === 'teams') {
+    } 
+    else if (action === 'leagues') {
+      endpoint = `/leagues`;
+      params = season ? `?season=${season}` : '';
+      
+      console.log(`[Football API] Full API URL: ${apiEndpoint}${endpoint}${params}`);
+      
+      // Make API request for leagues
+      const response = await fetch(`${apiEndpoint}${endpoint}${params}`, {
+        method: 'GET',
+        headers: requestHeaders,
+      });
+      
+      responseData = await response.json();
+    } 
+    else if (action === 'teams') {
       if (sport === 'basketball') {
         endpoint = `/teams`;
         params = `?league=${league}&season=${season}`;
+        
+        if (team_id) {
+          params += `&id=${team_id}`;
+        }
+        
+        console.log(`[Football API] Full API URL: ${apiEndpoint}${endpoint}${params}`);
+        
+        // Make API request for teams
+        const response = await fetch(`${apiEndpoint}${endpoint}${params}`, {
+          method: 'GET',
+          headers: requestHeaders,
+        });
+        
+        responseData = await response.json();
       } else {
         endpoint = `/teams`;
         params = `?league=${league}&season=${season}`;
+        
+        if (team_id) {
+          params += `&id=${team_id}`;
+        }
+        
+        console.log(`[Football API] Full API URL: ${apiEndpoint}${endpoint}${params}`);
+        
+        // Make API request for teams
+        const response = await fetch(`${apiEndpoint}${endpoint}${params}`, {
+          method: 'GET',
+          headers: requestHeaders,
+        });
+        
+        responseData = await response.json();
       }
     }
-
-    console.log(`[Football API] Full API URL: ${apiEndpoint}${endpoint}${params}`);
-
-    // Make API request
-    const response = await fetch(`${apiEndpoint}${endpoint}${params}`, {
-      method: 'GET',
-      headers: requestHeaders,
-    });
-
-    // Parse API response
-    const responseData = await response.json();
-    console.log(`[Football API] Response status: ${response.status}`);
-    console.log(`[Football API] Response preview: ${JSON.stringify(responseData).substring(0, 100)}...`);
+    else {
+      throw new Error(`Unknown action: ${action}`);
+    }
 
     // Format data for our application
     let formattedData: any[] = [];
     let count = 0;
 
-    if (response.ok && responseData) {
+    if (responseData) {
       if (action === 'fixtures' || action === 'games') {
         if (sport === 'basketball') {
           // Process basketball fixtures/games
           if (responseData.response) {
-            console.log(`[Football API] Found ${responseData.response.length} basketball games`);
+            console.log(`[Football API] Processing ${responseData.response.length} basketball games`);
             formattedData = responseData.response.map((game: any) => ({
               id: `${sport}-${game.id}`,
               date: game.date ? game.date.split('T')[0] : '2023-01-01',
@@ -228,7 +272,7 @@ Deno.serve(async (req) => {
       count = formattedData.length;
       console.log(`[Football API] Successfully formatted ${count} records`);
     } else {
-      console.error(`[Football API] API returned error:`, responseData);
+      console.error(`[Football API] API returned error or no data:`, responseData);
     }
 
     return new Response(
