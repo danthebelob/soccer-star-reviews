@@ -1,14 +1,1 @@
-
-project_id = "khzpzjpepdhhrzpjrdhp"
-
-[functions.fetch-football-data]
-verify_jwt = false
-
-[functions.get-matches]
-verify_jwt = false
-
-[functions.get-match-details]
-verify_jwt = false
-
-[functions.football-api]
-verify_jwt = false
+project_id = "ksmatarptkpamzfkmnnp"

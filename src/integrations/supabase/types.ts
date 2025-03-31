@@ -9,308 +9,32 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      competitions: {
+      players: {
         Row: {
-          country: string | null
-          created_at: string
+          attributes: Json | null
+          created_at: string | null
           id: string
-          importance: number
-          logo_url: string | null
+          image_url: string | null
           name: string
-          short_name: string
-          type: string
-          updated_at: string
+          teams: string[]
         }
         Insert: {
-          country?: string | null
-          created_at?: string
+          attributes?: Json | null
+          created_at?: string | null
           id?: string
-          importance?: number
-          logo_url?: string | null
+          image_url?: string | null
           name: string
-          short_name: string
-          type: string
-          updated_at?: string
+          teams: string[]
         }
         Update: {
-          country?: string | null
-          created_at?: string
+          attributes?: Json | null
+          created_at?: string | null
           id?: string
-          importance?: number
-          logo_url?: string | null
+          image_url?: string | null
           name?: string
-          short_name?: string
-          type?: string
-          updated_at?: string
+          teams?: string[]
         }
         Relationships: []
-      }
-      match_tags: {
-        Row: {
-          created_at: string
-          id: string
-          match_id: string | null
-          tag: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          match_id?: string | null
-          tag: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          match_id?: string | null
-          tag?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "match_tags_match_id_fkey"
-            columns: ["match_id"]
-            isOneToOne: false
-            referencedRelation: "matches"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      matches: {
-        Row: {
-          avg_rating: number | null
-          away_score: number | null
-          away_team_id: string | null
-          city: string | null
-          competition_id: string | null
-          country: string | null
-          created_at: string
-          date: string
-          highlights_url: string | null
-          home_score: number | null
-          home_team_id: string | null
-          id: string
-          is_featured: boolean | null
-          review_count: number | null
-          round: string | null
-          season: string | null
-          stadium: string | null
-          stage: string | null
-          status: string | null
-          time: string | null
-          updated_at: string
-        }
-        Insert: {
-          avg_rating?: number | null
-          away_score?: number | null
-          away_team_id?: string | null
-          city?: string | null
-          competition_id?: string | null
-          country?: string | null
-          created_at?: string
-          date: string
-          highlights_url?: string | null
-          home_score?: number | null
-          home_team_id?: string | null
-          id?: string
-          is_featured?: boolean | null
-          review_count?: number | null
-          round?: string | null
-          season?: string | null
-          stadium?: string | null
-          stage?: string | null
-          status?: string | null
-          time?: string | null
-          updated_at?: string
-        }
-        Update: {
-          avg_rating?: number | null
-          away_score?: number | null
-          away_team_id?: string | null
-          city?: string | null
-          competition_id?: string | null
-          country?: string | null
-          created_at?: string
-          date?: string
-          highlights_url?: string | null
-          home_score?: number | null
-          home_team_id?: string | null
-          id?: string
-          is_featured?: boolean | null
-          review_count?: number | null
-          round?: string | null
-          season?: string | null
-          stadium?: string | null
-          stage?: string | null
-          status?: string | null
-          time?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "matches_away_team_id_fkey"
-            columns: ["away_team_id"]
-            isOneToOne: false
-            referencedRelation: "teams"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "matches_competition_id_fkey"
-            columns: ["competition_id"]
-            isOneToOne: false
-            referencedRelation: "competitions"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "matches_home_team_id_fkey"
-            columns: ["home_team_id"]
-            isOneToOne: false
-            referencedRelation: "teams"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      profiles: {
-        Row: {
-          avatar_url: string | null
-          bio: string | null
-          created_at: string
-          favorite_team_id: string | null
-          full_name: string | null
-          id: string
-          updated_at: string
-          username: string | null
-        }
-        Insert: {
-          avatar_url?: string | null
-          bio?: string | null
-          created_at?: string
-          favorite_team_id?: string | null
-          full_name?: string | null
-          id: string
-          updated_at?: string
-          username?: string | null
-        }
-        Update: {
-          avatar_url?: string | null
-          bio?: string | null
-          created_at?: string
-          favorite_team_id?: string | null
-          full_name?: string | null
-          id?: string
-          updated_at?: string
-          username?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "profiles_favorite_team_id_fkey"
-            columns: ["favorite_team_id"]
-            isOneToOne: false
-            referencedRelation: "teams"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      reviews: {
-        Row: {
-          comment: string | null
-          created_at: string
-          id: string
-          match_id: string | null
-          rating: number
-          updated_at: string
-          user_id: string | null
-        }
-        Insert: {
-          comment?: string | null
-          created_at?: string
-          id?: string
-          match_id?: string | null
-          rating: number
-          updated_at?: string
-          user_id?: string | null
-        }
-        Update: {
-          comment?: string | null
-          created_at?: string
-          id?: string
-          match_id?: string | null
-          rating?: number
-          updated_at?: string
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "reviews_match_id_fkey"
-            columns: ["match_id"]
-            isOneToOne: false
-            referencedRelation: "matches"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      teams: {
-        Row: {
-          country: string | null
-          created_at: string
-          id: string
-          logo_url: string | null
-          name: string
-          short_name: string
-          updated_at: string
-        }
-        Insert: {
-          country?: string | null
-          created_at?: string
-          id?: string
-          logo_url?: string | null
-          name: string
-          short_name: string
-          updated_at?: string
-        }
-        Update: {
-          country?: string | null
-          created_at?: string
-          id?: string
-          logo_url?: string | null
-          name?: string
-          short_name?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      watchlists: {
-        Row: {
-          created_at: string
-          id: string
-          match_id: string | null
-          status: string | null
-          updated_at: string
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          match_id?: string | null
-          status?: string | null
-          updated_at?: string
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          match_id?: string | null
-          status?: string | null
-          updated_at?: string
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "watchlists_match_id_fkey"
-            columns: ["match_id"]
-            isOneToOne: false
-            referencedRelation: "matches"
-            referencedColumns: ["id"]
-          },
-        ]
       }
     }
     Views: {
