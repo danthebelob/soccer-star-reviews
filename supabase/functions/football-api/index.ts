@@ -1,4 +1,3 @@
-
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7'
 
 // Set up CORS headers for browser requests
@@ -25,7 +24,34 @@ Deno.serve(async (req) => {
   }
   
   try {
-    const { action, league = 39, season = 2023, from, to, team, sport = 'soccer' } = await req.json();
+    // Extrair body da requisição
+    let bodyText;
+    try {
+      bodyText = await req.text();
+    } catch (error) {
+      console.error('Error reading request body:', error);
+      throw new Error('Could not read request body');
+    }
+
+    // Tentar parse do JSON
+    let requestParams;
+    try {
+      requestParams = bodyText ? JSON.parse(bodyText) : {};
+    } catch (error) {
+      console.error('Error parsing JSON:', error, 'Raw body:', bodyText);
+      throw new Error('Invalid JSON in request body');
+    }
+
+    const { 
+      action, 
+      league = 12, // NBA como padrão
+      season = 2023, 
+      from, 
+      to, 
+      team, 
+      sport = 'basketball' // Basquete como padrão
+    } = requestParams;
+
     console.log(`Performing action: ${action}, sport: ${sport}, league: ${league}, season: ${season}`);
     
     if (action === 'fixtures') {
@@ -55,10 +81,18 @@ Deno.serve(async (req) => {
         }
       });
       
-      const data = await response.json();
-      
       if (!response.ok) {
-        throw new Error(`Football API error: ${data.message || 'Unknown error'}`);
+        const errorText = await response.text();
+        console.error('API returned error status:', response.status, errorText);
+        throw new Error(`Football API error: Status ${response.status}`);
+      }
+      
+      let data;
+      try {
+        data = await response.json();
+      } catch (error) {
+        console.error('Error parsing API response:', error);
+        throw new Error('Could not parse API response');
       }
       
       console.log(`Received ${data.results} fixtures from Football API`);
@@ -75,11 +109,11 @@ Deno.serve(async (req) => {
             home_team_id: fixture.teams.home.id.toString(),
             home_team_name: fixture.teams.home.name,
             home_team_logo: fixture.teams.home.logo,
-            home_score: fixture.goals.home,
+            home_score: fixture.goals.home ?? fixture.score.home ?? 0,
             away_team_id: fixture.teams.away.id.toString(),
             away_team_name: fixture.teams.away.name,
             away_team_logo: fixture.teams.away.logo,
-            away_score: fixture.goals.away,
+            away_score: fixture.goals.away ?? fixture.score.away ?? 0,
             league_id: fixture.league.id.toString(),
             league_name: fixture.league.name,
             league_logo: fixture.league.logo,
@@ -98,15 +132,14 @@ Deno.serve(async (req) => {
           JSON.stringify({
             success: true,
             data: transformedFixtures,
-            count: transformedFixtures.length,
-            apiResponse: data
+            count: transformedFixtures.length
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
       
       return new Response(
-        JSON.stringify({ success: true, data: [], count: 0, apiResponse: data }),
+        JSON.stringify({ success: true, data: [], count: 0 }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     } else if (action === 'standings') {

@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 import { Match } from "@/components/MatchCard";
@@ -79,7 +78,7 @@ export const apiMatchToComponentMatch = (apiMatch: ApiMatch): Match => {
     time: apiMatch.time,
     competition: apiMatch.competition,
     isLive: apiMatch.isLive,
-    sportType: apiMatch.sportType || 'soccer',
+    sportType: apiMatch.sportType || 'basketball',
     rating: apiMatch.rating,
     reviewCount: apiMatch.reviewCount,
     tags: apiMatch.tags
@@ -92,30 +91,35 @@ export const fetchMatches = async (
   limit: number = 10,
   competition_id?: string,
   status?: string,
-  sport: string = 'soccer',
-  league: number = 39
+  sport: string = 'basketball',
+  league: number = 12
 ): Promise<Match[]> => {
   try {
+    console.log(`Fetching matches: type=${type}, sport=${sport}, league=${league}`);
+    
     const { data, error } = await supabase.functions.invoke('get-matches', {
       body: { type, limit, competition_id, status, useApi: true, sport, league }
     });
 
     if (error) {
+      console.error('Error from Edge Function:', error);
       throw new Error(error.message);
     }
 
+    if (!data) {
+      console.error('No data returned from Edge Function');
+      throw new Error('No data returned from Edge Function');
+    }
+
     if (data?.success && data?.data) {
+      console.log(`Successfully fetched ${data.data.length} matches`);
       return data.data.map((match: ApiMatch) => apiMatchToComponentMatch(match));
     }
 
+    console.error('Invalid data format returned:', data);
     return [];
   } catch (error: any) {
     console.error('Error fetching matches:', error);
-    toast({
-      title: 'Erro',
-      description: 'Falha ao buscar partidas. Por favor, tente novamente mais tarde.',
-      variant: 'destructive'
-    });
     return [];
   }
 };

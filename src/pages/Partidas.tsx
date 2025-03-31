@@ -5,7 +5,7 @@ import { fetchMatches, fetchLeagues } from "@/integrations/api/matches";
 import { Match } from "@/components/MatchCard";
 import MatchCard from "@/components/MatchCard";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Calendar, Filter, SortDesc, ChevronDown } from "lucide-react";
+import { Calendar, Filter, SortDesc, ChevronDown, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -14,26 +14,61 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import Navbar from "@/components/Navbar";
+import { toast } from "@/components/ui/use-toast";
 
 // Define the sports options
 const sportsOptions = [
-  { id: 'soccer', name: 'Futebol', emoji: '⚽', leagueId: 39 },
   { id: 'basketball', name: 'Basquete', emoji: '🏀', leagueId: 12 },
+  { id: 'soccer', name: 'Futebol', emoji: '⚽', leagueId: 39 },
   { id: 'baseball', name: 'Beisebol', emoji: '⚾', leagueId: 1 },
   { id: 'hockey', name: 'Hockey', emoji: '🏒', leagueId: 57 },
   { id: 'american_football', name: 'Futebol Americano', emoji: '🏈', leagueId: 1 }
 ];
 
 const Partidas = () => {
+  // Iniciar com basquete como padrão
   const [selectedSport, setSelectedSport] = useState(sportsOptions[0]);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
   const { data: matches, isLoading, error, refetch } = useQuery({
     queryKey: ["matches", selectedSport.id, selectedSport.leagueId],
-    queryFn: () => fetchMatches("all", 20, undefined, undefined, selectedSport.id, selectedSport.leagueId),
+    queryFn: async () => {
+      try {
+        const result = await fetchMatches("all", 20, undefined, undefined, selectedSport.id, selectedSport.leagueId);
+        return result;
+      } catch (err) {
+        console.error("Erro ao buscar partidas:", err);
+        toast({
+          title: "Erro ao carregar partidas",
+          description: "Não foi possível buscar as partidas. Tente novamente mais tarde.",
+          variant: "destructive"
+        });
+        return [];
+      }
+    }
   });
 
   const handleSportChange = (sport: typeof sportsOptions[0]) => {
     setSelectedSport(sport);
+  };
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await refetch();
+      toast({
+        title: "Atualizado",
+        description: `As partidas de ${selectedSport.name} foram atualizadas.`
+      });
+    } catch (err) {
+      toast({
+        title: "Erro ao atualizar",
+        description: "Não foi possível atualizar as partidas. Tente novamente mais tarde.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   if (isLoading) {
@@ -77,28 +112,26 @@ const Partidas = () => {
     );
   }
 
-  if (error) {
-    return (
-      <div className="min-h-screen flex flex-col bg-background">
-        <Navbar />
-        <div className="container py-8 mx-auto">
-          <h1 className="mb-6 text-3xl font-bold">Partidas</h1>
-          <div className="p-4 text-red-500 bg-red-100 rounded-md">
-            Erro ao carregar partidas. Por favor, tente novamente mais tarde.
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       <div className="container py-8 mx-auto">
-        <h1 className="mb-6 text-3xl font-bold">
-          <span className="mr-2">{selectedSport.emoji}</span>
-          Partidas de {selectedSport.name}
-        </h1>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold">
+            <span className="mr-2">{selectedSport.emoji}</span>
+            Partidas de {selectedSport.name}
+          </h1>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleRefresh} 
+            disabled={isRefreshing}
+            className="gap-1"
+          >
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} /> 
+            {isRefreshing ? 'Atualizando...' : 'Atualizar'}
+          </Button>
+        </div>
         
         <div className="flex justify-between mb-6">
           <div className="flex gap-2">

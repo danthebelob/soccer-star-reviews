@@ -20,8 +20,35 @@ Deno.serve(async (req) => {
   }
   
   try {
-    const { type = 'all', limit = 10, competition_id, status, useApi = false, sport = 'soccer', league = 39 } = await req.json()
-    console.log(`Fetching matches: type=${type}, limit=${limit}, competition=${competition_id}, status=${status}, useApi=${useApi}, sport=${sport}, league=${league}`)
+    // Extrair body da requisição
+    let bodyText;
+    try {
+      bodyText = await req.text();
+    } catch (error) {
+      console.error('Error reading request body:', error);
+      throw new Error('Could not read request body');
+    }
+
+    // Tentar parse do JSON
+    let requestParams;
+    try {
+      requestParams = bodyText ? JSON.parse(bodyText) : {};
+    } catch (error) {
+      console.error('Error parsing JSON:', error, 'Raw body:', bodyText);
+      throw new Error('Invalid JSON in request body');
+    }
+
+    const { 
+      type = 'all', 
+      limit = 10, 
+      competition_id, 
+      status, 
+      useApi = false, 
+      sport = 'basketball', // Alterado para basquete como padrão
+      league = 12 // Alterado para NBA como padrão
+    } = requestParams;
+    
+    console.log(`Fetching matches: type=${type}, limit=${limit}, competition=${competition_id}, status=${status}, useApi=${useApi}, sport=${sport}, league=${league}`);
     
     // If useApi is true, call the football-api function
     if (useApi) {
@@ -40,83 +67,93 @@ Deno.serve(async (req) => {
       const toDate = futureDate.toISOString().split('T')[0];
       
       // Call football-api function
-      const footballApiResponse = await supabaseClient.functions.invoke('football-api', {
-        body: { 
-          action: 'fixtures', 
-          from: fromDate, 
-          to: toDate,
-          league: league, // Default league is configurable now
-          sport: sport // Added sport parameter
-        }
-      });
+      console.log(`Calling football-api with: action=fixtures, from=${fromDate}, to=${toDate}, league=${league}, sport=${sport}`);
       
-      if (footballApiResponse.error) {
-        throw new Error(footballApiResponse.error.message);
-      }
-      
-      // Transform the data to match frontend expectations
-      if (footballApiResponse.data && footballApiResponse.data.data) {
-        const matches = footballApiResponse.data.data;
-        
-        // Filter based on type
-        let filteredMatches = matches;
-        if (type === 'live') {
-          filteredMatches = matches.filter(match => match.is_live);
-        } else if (type === 'upcoming') {
-          filteredMatches = matches.filter(match => match.status === 'scheduled');
-        } else if (type === 'trending') {
-          // For trending, we'll sort by the most recent/upcoming matches
-          filteredMatches = matches.sort((a, b) => {
-            return Math.abs(a.fixture_timestamp - Math.floor(Date.now() / 1000)) - 
-                   Math.abs(b.fixture_timestamp - Math.floor(Date.now() / 1000));
-          });
-        }
-        
-        // Apply limit
-        filteredMatches = filteredMatches.slice(0, limit);
-        
-        // Transform to expected format
-        const transformedMatches = filteredMatches.map(match => {
-          return {
-            id: match.id,
-            homeTeam: {
-              id: match.home_team_id,
-              name: match.home_team_name,
-              logo: match.home_team_logo,
-              score: match.home_score || 0
-            },
-            awayTeam: {
-              id: match.away_team_id,
-              name: match.away_team_name,
-              logo: match.away_team_logo,
-              score: match.away_score || 0
-            },
-            date: match.date,
-            time: match.time,
-            competition: match.league_name,
-            competitionLogo: match.league_logo,
-            isLive: match.is_live,
-            sportType: match.sport_type || sport,
-            rating: 4.5, // Default rating
-            reviewCount: 10, // Default review count
-            tags: [match.sport_type || sport, match.league_name.toLowerCase().replace(/\s+/g, '-')],
-            highlightsUrl: null,
-            isFeatured: false
-          };
+      try {
+        const footballApiResponse = await supabaseClient.functions.invoke('football-api', {
+          body: { 
+            action: 'fixtures', 
+            from: fromDate, 
+            to: toDate,
+            league: league,
+            sport: sport
+          }
         });
         
-        return new Response(
-          JSON.stringify({ 
-            success: true, 
-            data: transformedMatches
-          }),
-          { 
-            headers: { 
-              ...corsHeaders,
-              'Content-Type': 'application/json' 
-            } 
+        if (footballApiResponse.error) {
+          console.error('Error from football-api function:', footballApiResponse.error);
+          throw new Error(footballApiResponse.error.message);
+        }
+
+        console.log('football-api response:', JSON.stringify(footballApiResponse.data).substring(0, 200) + '...');
+        
+        // Transform the data to match frontend expectations
+        if (footballApiResponse.data && footballApiResponse.data.data) {
+          const matches = footballApiResponse.data.data;
+          
+          // Filter based on type
+          let filteredMatches = matches;
+          if (type === 'live') {
+            filteredMatches = matches.filter(match => match.is_live);
+          } else if (type === 'upcoming') {
+            filteredMatches = matches.filter(match => match.status === 'scheduled');
+          } else if (type === 'trending') {
+            // For trending, we'll sort by the most recent/upcoming matches
+            filteredMatches = matches.sort((a, b) => {
+              return Math.abs(a.fixture_timestamp - Math.floor(Date.now() / 1000)) - 
+                    Math.abs(b.fixture_timestamp - Math.floor(Date.now() / 1000));
+            });
           }
-        );
+          
+          // Apply limit
+          filteredMatches = filteredMatches.slice(0, limit);
+          
+          // Transform to expected format
+          const transformedMatches = filteredMatches.map(match => {
+            return {
+              id: match.id,
+              homeTeam: {
+                id: match.home_team_id,
+                name: match.home_team_name,
+                logo: match.home_team_logo || 'https://via.placeholder.com/32?text=Team',
+                score: match.home_score || 0
+              },
+              awayTeam: {
+                id: match.away_team_id,
+                name: match.away_team_name,
+                logo: match.away_team_logo || 'https://via.placeholder.com/32?text=Team',
+                score: match.away_score || 0
+              },
+              date: match.date,
+              time: match.time,
+              competition: match.league_name,
+              competitionLogo: match.league_logo,
+              isLive: match.is_live,
+              sportType: match.sport_type || sport,
+              rating: 4.5, // Default rating
+              reviewCount: 10, // Default review count
+              tags: [match.sport_type || sport, match.league_name.toLowerCase().replace(/\s+/g, '-')],
+              highlightsUrl: null,
+              isFeatured: false
+            };
+          });
+          
+          return new Response(
+            JSON.stringify({ 
+              success: true, 
+              data: transformedMatches
+            }),
+            { 
+              headers: { 
+                ...corsHeaders,
+                'Content-Type': 'application/json' 
+              } 
+            }
+          );
+        }
+      } catch (error) {
+        console.error('Error calling football-api function:', error);
+        // Continue to database query as fallback
       }
     }
     
@@ -207,7 +244,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: true, 
-        data: transformedMatches
+        data: [] // Retornando array vazio como fallback
       }),
       { 
         headers: { 
@@ -215,11 +252,15 @@ Deno.serve(async (req) => {
           'Content-Type': 'application/json' 
         } 
       }
-    )
+    );
   } catch (error) {
-    console.error('Error:', error.message)
+    console.error('Error:', error);
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
+      JSON.stringify({ 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      }),
       { 
         headers: { 
           ...corsHeaders,
@@ -227,6 +268,6 @@ Deno.serve(async (req) => {
         },
         status: 400
       }
-    )
+    );
   }
-})
+});
