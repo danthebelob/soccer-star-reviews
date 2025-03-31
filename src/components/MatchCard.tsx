@@ -21,6 +21,7 @@ export interface Match {
   date: string;
   time: string;
   competition: string;
+  sportType?: string;
   isLive?: boolean;
   rating?: number;
   reviewCount?: number;
@@ -42,6 +43,31 @@ const MatchCard = ({ match, variant = 'default' }: MatchCardProps) => {
     year: 'numeric'
   });
 
+  // Function to get sport emoji
+  const getSportEmoji = (sportType?: string) => {
+    switch (sportType?.toLowerCase()) {
+      case 'soccer':
+      case 'football':
+        return '⚽';
+      case 'basketball':
+        return '🏀';
+      case 'baseball':
+        return '⚾';
+      case 'hockey':
+        return '🏒';
+      case 'tennis':
+        return '🎾';
+      case 'rugby':
+        return '🏉';
+      case 'volleyball':
+        return '🏐';
+      case 'golf':
+        return '⛳';
+      default:
+        return '🎮';
+    }
+  };
+
   return (
     <Card className={`match-card h-full overflow-hidden ${isFeatured ? 'border-soccer-score' : ''}`}>
       {match.isLive && (
@@ -52,9 +78,12 @@ const MatchCard = ({ match, variant = 'default' }: MatchCardProps) => {
       
       <CardHeader className={`pb-2 ${isFeatured ? 'bg-gradient-to-r from-soccer-grass to-green-700 text-white' : ''}`}>
         <div className="flex justify-between items-center">
-          <Badge variant="outline" className={`${isFeatured ? 'bg-white/20 text-white border-white/30' : ''}`}>
-            {match.competition}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <span>{getSportEmoji(match.sportType)}</span>
+            <Badge variant="outline" className={`${isFeatured ? 'bg-white/20 text-white border-white/30' : ''}`}>
+              {match.competition}
+            </Badge>
+          </div>
           {match.rating !== undefined && (
             <div className="flex items-center gap-1">
               <StarRating readOnly initialRating={match.rating} size={16} />

@@ -25,8 +25,8 @@ Deno.serve(async (req) => {
   }
   
   try {
-    const { action, league = 39, season = 2023, from, to, team } = await req.json();
-    console.log(`Performing action: ${action}, league: ${league}, season: ${season}`);
+    const { action, league = 39, season = 2023, from, to, team, sport = 'soccer' } = await req.json();
+    console.log(`Performing action: ${action}, sport: ${sport}, league: ${league}, season: ${season}`);
     
     if (action === 'fixtures') {
       // Fetch past and upcoming fixtures from Football API
@@ -89,7 +89,8 @@ Deno.serve(async (req) => {
             season: season.toString(),
             round: fixture.league.round,
             is_live: fixture.fixture.status.short === 'LIVE',
-            fixture_timestamp: fixture.fixture.timestamp
+            fixture_timestamp: fixture.fixture.timestamp,
+            sport_type: sport
           };
         });
         
@@ -116,6 +117,34 @@ Deno.serve(async (req) => {
       
       // Make request to Football API
       console.log(`Fetching standings from: ${url.toString()}`);
+      const response = await fetch(url.toString(), {
+        method: 'GET',
+        headers: {
+          'x-rapidapi-key': FOOTBALL_API_KEY,
+          'x-rapidapi-host': 'v3.football.api-sports.io'
+        }
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(`Football API error: ${data.message || 'Unknown error'}`);
+      }
+      
+      return new Response(
+        JSON.stringify({ success: true, data: data.response }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    } else if (action === 'leagues') {
+      // Fetch available leagues for a sport
+      const url = new URL(`${FOOTBALL_API_BASE_URL}/leagues`);
+      
+      if (season) {
+        url.searchParams.append('season', season.toString());
+      }
+      
+      // Make request to Football API
+      console.log(`Fetching leagues from: ${url.toString()}`);
       const response = await fetch(url.toString(), {
         method: 'GET',
         headers: {

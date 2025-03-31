@@ -22,7 +22,7 @@ const Navbar = () => {
           </Button>
           <Link to="/" className="flex items-center gap-2">
             <Trophy className="w-6 h-6 text-soccer-grass" />
-            <span className="text-xl font-bold">Futebol<span className="text-soccer-score">Análise</span></span>
+            <span className="text-xl font-bold">Esportes<span className="text-soccer-score">Play</span></span>
           </Link>
         </div>
         

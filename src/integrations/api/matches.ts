@@ -24,6 +24,7 @@ export interface ApiMatch {
   competitionLogo?: string;
   isLive?: boolean;
   isFeatured?: boolean;
+  sportType?: string;
   rating?: number;
   reviewCount?: number;
   tags?: string[];
@@ -38,6 +39,7 @@ export interface MatchDetails extends Omit<ApiMatch, 'competition'> {
     logo: string;
   };
   status: string;
+  sportType?: string;
   venue?: {
     stadium?: string;
     city?: string;
@@ -77,6 +79,7 @@ export const apiMatchToComponentMatch = (apiMatch: ApiMatch): Match => {
     time: apiMatch.time,
     competition: apiMatch.competition,
     isLive: apiMatch.isLive,
+    sportType: apiMatch.sportType || 'soccer',
     rating: apiMatch.rating,
     reviewCount: apiMatch.reviewCount,
     tags: apiMatch.tags
@@ -88,11 +91,13 @@ export const fetchMatches = async (
   type: 'all' | 'featured' | 'live' | 'upcoming' | 'trending' = 'all',
   limit: number = 10,
   competition_id?: string,
-  status?: string
+  status?: string,
+  sport: string = 'soccer',
+  league: number = 39
 ): Promise<Match[]> => {
   try {
     const { data, error } = await supabase.functions.invoke('get-matches', {
-      body: { type, limit, competition_id, status, useApi: true }
+      body: { type, limit, competition_id, status, useApi: true, sport, league }
     });
 
     if (error) {
@@ -142,6 +147,33 @@ export const fetchMatchById = async (id: string): Promise<MatchDetails | null> =
   }
 };
 
+// Fetch available leagues
+export const fetchLeagues = async (season: number = 2023): Promise<any[]> => {
+  try {
+    const { data, error } = await supabase.functions.invoke('football-api', {
+      body: { action: 'leagues', season }
+    });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    if (data?.success && data?.data) {
+      return data.data;
+    }
+
+    return [];
+  } catch (error: any) {
+    console.error('Error fetching leagues:', error);
+    toast({
+      title: 'Erro',
+      description: 'Falha ao buscar ligas disponíveis. Por favor, tente novamente mais tarde.',
+      variant: 'destructive'
+    });
+    return [];
+  }
+};
+
 // Initialize database with sample data
 export const initializeDatabase = async (): Promise<boolean> => {
   try {
@@ -156,7 +188,7 @@ export const initializeDatabase = async (): Promise<boolean> => {
     if (data?.success) {
       toast({
         title: 'Sucesso',
-        description: 'Banco de dados inicializado com dados de partidas de futebol!'
+        description: 'Banco de dados inicializado com dados de partidas de esportes!'
       });
       return true;
     }

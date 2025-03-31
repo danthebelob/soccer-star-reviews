@@ -20,8 +20,8 @@ Deno.serve(async (req) => {
   }
   
   try {
-    const { type = 'all', limit = 10, competition_id, status, useApi = false } = await req.json()
-    console.log(`Fetching matches: type=${type}, limit=${limit}, competition=${competition_id}, status=${status}, useApi=${useApi}`)
+    const { type = 'all', limit = 10, competition_id, status, useApi = false, sport = 'soccer', league = 39 } = await req.json()
+    console.log(`Fetching matches: type=${type}, limit=${limit}, competition=${competition_id}, status=${status}, useApi=${useApi}, sport=${sport}, league=${league}`)
     
     // If useApi is true, call the football-api function
     if (useApi) {
@@ -45,7 +45,8 @@ Deno.serve(async (req) => {
           action: 'fixtures', 
           from: fromDate, 
           to: toDate,
-          league: 39 // Premier League by default
+          league: league, // Default league is configurable now
+          sport: sport // Added sport parameter
         }
       });
       
@@ -95,9 +96,10 @@ Deno.serve(async (req) => {
             competition: match.league_name,
             competitionLogo: match.league_logo,
             isLive: match.is_live,
+            sportType: match.sport_type || sport,
             rating: 4.5, // Default rating
             reviewCount: 10, // Default review count
-            tags: ['futebol', 'premier-league'],
+            tags: [match.sport_type || sport, match.league_name.toLowerCase().replace(/\s+/g, '-')],
             highlightsUrl: null,
             isFeatured: false
           };
@@ -133,6 +135,7 @@ Deno.serve(async (req) => {
         review_count,
         is_featured,
         highlights_url,
+        sport_type,
         competitions(id, name, short_name, logo_url),
         home_team:teams!matches_home_team_id_fkey(id, name, short_name, logo_url),
         away_team:teams!matches_away_team_id_fkey(id, name, short_name, logo_url),
@@ -147,6 +150,10 @@ Deno.serve(async (req) => {
     
     if (status) {
       query = query.eq('status', status)
+    }
+    
+    if (sport) {
+      query = query.eq('sport_type', sport)
     }
     
     // Apply special filters based on type
@@ -188,6 +195,7 @@ Deno.serve(async (req) => {
         competition: match.competitions.name,
         competitionLogo: match.competitions.logo_url,
         isLive: match.status === 'live',
+        sportType: match.sport_type || 'soccer',
         rating: match.avg_rating,
         reviewCount: match.review_count,
         tags: match.match_tags.map(tag => tag.tag),
